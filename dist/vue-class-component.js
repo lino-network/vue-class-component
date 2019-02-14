@@ -11,7 +11,10 @@
 
     Vue = Vue && Vue.hasOwnProperty('default') ? Vue['default'] : Vue;
 
-    var reflectionIsSupported = typeof Reflect !== 'undefined' && Reflect.defineMetadata;
+    // The rational behind the verbose Reflect-feature check below is the fact that there are polyfills
+    // which add an implementation for Reflect.defineMetadata but not for Reflect.getOwnMetadataKeys.
+    // Without this check consumers will encounter hard to track down runtime errors.
+    var reflectionIsSupported = typeof Reflect !== 'undefined' && Reflect.defineMetadata && Reflect.getOwnMetadataKeys;
     function copyReflectionMetadata(to, from) {
         forwardMetadata(to, from);
         Object.getOwnPropertyNames(from.prototype).forEach(function (key) {
@@ -88,11 +91,15 @@
             }
             keys.forEach(function (key) {
                 if (key.charAt(0) !== '_') {
-                    Object.defineProperty(_this, key, {
-                        get: function () { return vm[key]; },
-                        set: function (value) { vm[key] = value; },
-                        configurable: true
-                    });
+                    var prevProp = Object.getOwnPropertyDescriptor(_this, key);
+                    // expected case.
+                    if (prevProp == undefined) {
+                        Object.defineProperty(_this, key, {
+                            get: function () { return vm[key]; },
+                            set: function (value) { vm[key] = value; },
+                            configurable: true
+                        });
+                    }
                 }
             });
         };

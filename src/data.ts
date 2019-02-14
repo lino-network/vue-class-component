@@ -18,11 +18,17 @@ export function collectDataFromConstructor (vm: Vue, Component: VueClass<Vue>) {
     }
     keys.forEach(key => {
       if (key.charAt(0) !== '_') {
-        Object.defineProperty(this, key, {
-          get: () => vm[key],
-          set: value => { vm[key] = value },
-          configurable: true
-        })
+        const prevProp = Object.getOwnPropertyDescriptor(this, key);
+        // expected case.
+        if (prevProp == undefined) {
+          Object.defineProperty(this, key, {
+            get: () => vm[key],
+            set: value => { vm[key] = value },
+            configurable: true
+          })
+        } else {
+          // skip data that has defined by others, like @Apollo.
+        }
       }
     })
   }
